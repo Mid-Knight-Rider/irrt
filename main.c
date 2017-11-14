@@ -48,6 +48,14 @@ void SysTick_Handler(void)
     }
 }
 
+void Delay(void)
+{
+    for (uint32_t i = 0; i < 38022; ++i) {
+        NVIC_ST_CURRENT_R = 0;
+        while (MAP_SysTickValueGet() > 0);
+    }
+}
+
 void GPIOE_Handler(void)
 {
     // Acknowledge interrupt.
@@ -89,23 +97,42 @@ int main(void)
     MAP_GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
     MAP_GPIOPinConfigure(GPIO_PA0_U0RX);
     MAP_GPIOPinConfigure(GPIO_PA1_U0TX);
-    UARTClockSourceSet(UART0_BASE, UART_CLOCK_PIOSC);
+    MAP_UARTClockSourceSet(UART0_BASE, UART_CLOCK_PIOSC);
     UARTStdioConfig(0, 9600, 16000000);
     // Enable interrupts globally.
     MAP_IntMasterEnable();
     // Main program loop.
     while (loop) {
-        //UARTCharPut(UART0_BASE, 'a');
-        UARTprintf("blah mannn\n");
-        ir_proto proto;
+        UARTprintf("Waiting for a signal to decode...\n");
         MAP_IntEnable(INT_GPIOE);
         // Wait until buffer is ready to parse.
         while (!buffer_ready);
+        ir_proto proto;
         int decoded = decode(buffer, BUFFER_SIZE, &proto);
         if (0 == decoded) {
+            switch (proto.type) {
+                case IR_PROTO_SAMSUNG: {
+                    ir_proto_samsung * myproto = (ir_proto_samsung *) &proto;
+                    UARTprintf("Got: Samsung: custom = 0x%02x, data = 0x%02x\n", myproto->custom, myproto->data);
+                    break;
+                }
+                case IR_PROTO_SIRC_12: {
+                    ir_proto_sirc_12 * myproto = (ir_proto_sirc_12 *) &proto;
+                    UARTprintf("Got: Sony SIRC 12-bit: address = 0x%02x, command = 0x%02x\n", myproto->address, myproto->command);
+                    break;
+                }
+                default: {
+                    UARTprintf("Got: ?\n");
+                    break;
+                }
+            }
             GPIO_PORTC_DATA_R ^= 0x60UL;
+        } else {
+            UARTprintf("Got a signal, but couldn't decode it.\n");
         }
         buffer_ready = 0;
+        // TODO: clear interrupts?
+        Delay();
     }
     return 0;
 }
