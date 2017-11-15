@@ -24,4 +24,21 @@ typedef struct ir_proto_sirc_12 {
     unsigned char address;
 } ir_proto_sirc_12;
 
+int decode(const unsigned char * buffer,
+           unsigned long buffer_sz,
+           ir_proto * proto);
+
+unsigned long decode_sequence(const unsigned char * buffer,
+                              unsigned long buffer_sz,
+                              unsigned long offset,
+                              unsigned char expect);
+
+int decode_samsung(const unsigned char * buffer,
+                   unsigned long buffer_sz,
+                   ir_proto * proto);
+
+int decode_sirc_12(const unsigned char * buffer,
+                   unsigned long buffer_sz,
+                   ir_proto * proto);
+
 #endif

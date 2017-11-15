@@ -1,4 +1,4 @@
-#include "ir_decoder.h"
+#include "ir_proto.h"
 
 int decode(const unsigned char * buffer,
            unsigned long buffer_sz,

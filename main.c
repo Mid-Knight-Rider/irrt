@@ -13,7 +13,6 @@
 #include "driverlib/systick.h"
 #include "driverlib/uart.h"
 #include "utils/uartstdio.h"
-#include "ir_decoder.h"
 #include "ir_proto.h"
 
 #define BUFFER_SIZE 4096
@@ -132,7 +131,7 @@ int main(void)
         }
         buffer_ready = 0;
         // TODO: clear interrupts?
-        Delay();
+        //Delay();
     }
     return 0;
 }

@@ -1,4 +1,4 @@
-#include "ir_decoder.h"
+#include "ir_proto.h"
 
 /**
  * Sony SIRC 12-bits
