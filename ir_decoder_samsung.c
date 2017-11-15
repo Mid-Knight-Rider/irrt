@@ -27,7 +27,7 @@
 #define CYCLES_BIT_PREFIX 21
 #define CYCLES_BIT_SUFFIX_ZERO 21
 #define CYCLES_BIT_SUFFIX_ONE 64
-#define CYCLES_DELTA 4
+#define CYCLES_DELTA 6
 #define BITS_PER_BYTE 8
 
 static unsigned long decode_byte(const unsigned char * buffer,
