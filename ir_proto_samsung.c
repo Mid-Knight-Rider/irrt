@@ -1,9 +1,11 @@
+#include "common.h"
 #include "ir_proto.h"
 
 /**
  * Samsung
  *
  * Frequency: 37.9 kHz
+ * Duty Cycle: 1/3
  *
  * Packet:
  * 4.5 ms of modulation (0)
@@ -30,7 +32,7 @@
 #define CYCLES_DELTA 6
 #define BITS_PER_BYTE 8
 
-static unsigned long decode_byte(const unsigned char * buffer,
+static unsigned long decode_byte(const uint8_t * buffer,
                                  unsigned long buffer_sz,
                                  unsigned long offset,
                                  unsigned char * byte)
@@ -57,9 +59,9 @@ static unsigned long decode_byte(const unsigned char * buffer,
     return sequence_length;
 }
 
-int decode_samsung(const unsigned char * buffer,
-                   unsigned long buffer_sz,
-                   ir_proto * proto)
+bool ir_proto_decode_samsung(ir_proto * proto,
+                             const uint8_t * buffer,
+                             unsigned long buffer_sz)
 {
     proto->type = IR_PROTO_SAMSUNG;
     ir_proto_samsung * myproto = (ir_proto_samsung *) proto;
@@ -72,7 +74,7 @@ int decode_samsung(const unsigned char * buffer,
     // Leader modulated.
     sequence_length = decode_sequence(buffer, buffer_sz, offset, 0);
     if (sequence_length < CYCLES_LEADER - CYCLES_DELTA || sequence_length > CYCLES_LEADER + CYCLES_DELTA) {
-        return 1;
+        return false;
     }
     
     offset += sequence_length;
@@ -80,7 +82,7 @@ int decode_samsung(const unsigned char * buffer,
     // Leader silent.
     sequence_length = decode_sequence(buffer, buffer_sz, offset, 1);
     if (sequence_length < CYCLES_LEADER - CYCLES_DELTA || sequence_length > CYCLES_LEADER + CYCLES_DELTA) {
-        return 1;
+        return false;
     }
     
     offset += sequence_length;
@@ -88,7 +90,7 @@ int decode_samsung(const unsigned char * buffer,
     // Custom (first time).
     sequence_length = decode_byte(buffer, buffer_sz, offset, &myproto->custom);
     if (0 == sequence_length) {
-        return 1;
+        return false;
     }
     
     offset += sequence_length;
@@ -97,7 +99,7 @@ int decode_samsung(const unsigned char * buffer,
     unsigned char custom;
     sequence_length = decode_byte(buffer, buffer_sz, offset, &custom);
     if (0 == sequence_length || custom != myproto->custom) {
-        return 1;
+        return false;
     }
     
     offset += sequence_length;
@@ -105,7 +107,7 @@ int decode_samsung(const unsigned char * buffer,
     // Data.
     sequence_length = decode_byte(buffer, buffer_sz, offset, &myproto->data);
     if (0 == sequence_length) {
-        return 1;
+        return false;
     }
     
     offset += sequence_length;
@@ -115,8 +117,8 @@ int decode_samsung(const unsigned char * buffer,
     sequence_length = decode_byte(buffer, buffer_sz, offset, &data);
     data = ~data;
     if (0 == sequence_length || data != myproto->data) {
-        return 1;
+        return false;
     }
     
-    return 0;
+    return true;
 }

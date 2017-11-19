@@ -1,57 +1,22 @@
-#define PART_TM4C123GH6PM
-#define TARGET_IS_TM4C123_RB1
-#include <stdint.h>
-#include <stdbool.h>
-#include "driverlib/rom.h"
-#include "driverlib/rom_map.h"
-#include "inc/tm4c123gh6pm.h"
-#include "inc/hw_memmap.h"
-#include "driverlib/gpio.h"
-#include "driverlib/pin_map.h"
-#include "driverlib/sysctl.h"
-#include "driverlib/interrupt.h"
-#include "driverlib/systick.h"
-#include "driverlib/uart.h"
-#include "utils/uartstdio.h"
+#include "common.h"
 #include "ir_proto.h"
+#include "uart_menu.h"
+#include "ir_remote.h"
 
-#define BUFFER_SIZE 4096
-unsigned char buffer[BUFFER_SIZE];
-unsigned long buffer_sz = 0;
-int buffer_ready = 0;
-int mode_transmit = 0;
-
-void ir_transmit(void)
-{
-    
-}
-
-void ir_receive(void)
-{
-    unsigned long next_bit = (0 == (GPIO_PORTE_DATA_R & 0x10UL)) ? 0 : 1;
-    buffer[buffer_sz] = next_bit;
-    buffer_sz++;
-    if (buffer_sz >= BUFFER_SIZE) {
-        buffer_ready = 1;
-        MAP_SysTickIntDisable();
-        buffer_sz = 0;
-    }
-}
+#define RECV_BUFFER_SIZE 4096
+uint8_t recv_buffer[RECV_BUFFER_SIZE];
+unsigned long recv_buffer_sz = 0;
+bool recv_buffer_ready = false;
+ir_remote ir_remotes[IR_REMOTES_MAX];
 
 void SysTick_Handler(void)
 {
-    if (mode_transmit) {
-        ir_transmit();
-    } else {
-        ir_receive();
-    }
-}
-
-void Delay(void)
-{
-    for (uint32_t i = 0; i < 38022; ++i) {
-        NVIC_ST_CURRENT_R = 0;
-        while (MAP_SysTickValueGet() > 0);
+    uint8_t next_bit = (0 != MAP_GPIOPinRead(GPIO_PORTE_BASE, GPIO_PIN_4));
+    recv_buffer[recv_buffer_sz] = next_bit;
+    recv_buffer_sz++;
+    if (recv_buffer_sz >= RECV_BUFFER_SIZE) {
+        MAP_SysTickIntDisable();
+        recv_buffer_ready = true;
     }
 }
 
@@ -98,40 +63,15 @@ int main(void)
     MAP_GPIOPinConfigure(GPIO_PA1_U0TX);
     MAP_UARTClockSourceSet(UART0_BASE, UART_CLOCK_PIOSC);
     UARTStdioConfig(0, 9600, 16000000);
+    // Initialize all remotes.
+    for (unsigned long i = 0; i < IR_REMOTES_MAX; ++i) {
+        ir_remotes[i].registered = false;
+    }
     // Enable interrupts globally.
     MAP_IntMasterEnable();
     // Main program loop.
     while (loop) {
-        UARTprintf("Waiting for a signal to decode...\n");
-        MAP_IntEnable(INT_GPIOE);
-        // Wait until buffer is ready to parse.
-        while (!buffer_ready);
-        ir_proto proto;
-        int decoded = decode(buffer, BUFFER_SIZE, &proto);
-        if (0 == decoded) {
-            switch (proto.type) {
-                case IR_PROTO_SAMSUNG: {
-                    ir_proto_samsung * myproto = (ir_proto_samsung *) &proto;
-                    UARTprintf("Got: Samsung: custom = 0x%02x, data = 0x%02x\n", myproto->custom, myproto->data);
-                    break;
-                }
-                case IR_PROTO_SIRC_12: {
-                    ir_proto_sirc_12 * myproto = (ir_proto_sirc_12 *) &proto;
-                    UARTprintf("Got: Sony SIRC 12-bit: address = 0x%02x, command = 0x%02x\n", myproto->address, myproto->command);
-                    break;
-                }
-                default: {
-                    UARTprintf("Got: ?\n");
-                    break;
-                }
-            }
-            GPIO_PORTC_DATA_R ^= 0x60UL;
-        } else {
-            UARTprintf("Got a signal, but couldn't decode it.\n");
-        }
-        buffer_ready = 0;
-        // TODO: clear interrupts?
-        //Delay();
+        uart_menu_main();
     }
     return 0;
 }
