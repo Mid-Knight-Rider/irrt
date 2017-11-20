@@ -125,5 +125,50 @@ bool ir_proto_decode_samsung(ir_proto * proto,
 
 bool ir_proto_encode_samsung(const ir_proto * proto)
 {
-    return false;
+    const ir_proto_samsung * myproto = (const ir_proto_samsung *) proto;
+    unsigned long databar = ~(myproto->data);
+    ir_carrier(0x01, 3, CYCLES_LEADER);
+    ir_carrier(0x00, 3, CYCLES_LEADER);
+    // Custom (twice)
+    for (unsigned k = 0; k < 2; ++k) {
+        for (unsigned i = 0; i < BITS_PER_BYTE; ++i) {
+            if (0 != ((myproto->custom >> i) & 0x01)) {
+                // One
+                ir_carrier(0x01, 3, CYCLES_BIT_PREFIX);
+                ir_carrier(0x00, 3, CYCLES_BIT_SUFFIX_ONE);
+            } else {
+                // Zero
+                ir_carrier(0x01, 3, CYCLES_BIT_PREFIX);
+                ir_carrier(0x00, 3, CYCLES_BIT_SUFFIX_ZERO);
+            }
+        }
+    }
+    // Data
+    for (unsigned i = 0; i < BITS_PER_BYTE; ++i) {
+        if (0 != ((myproto->data >> i) & 0x01)) {
+            // One
+            ir_carrier(0x01, 3, CYCLES_BIT_PREFIX);
+            ir_carrier(0x00, 3, CYCLES_BIT_SUFFIX_ONE);
+        } else {
+            // Zero
+            ir_carrier(0x01, 3, CYCLES_BIT_PREFIX);
+            ir_carrier(0x00, 3, CYCLES_BIT_SUFFIX_ZERO);
+        }
+    }
+    // Data Bar
+    for (unsigned i = 0; i < BITS_PER_BYTE; ++i) {
+        if (0 != ((databar >> i) & 0x01)) {
+            // One
+            ir_carrier(0x01, 3, CYCLES_BIT_PREFIX);
+            ir_carrier(0x00, 3, CYCLES_BIT_SUFFIX_ONE);
+        } else {
+            // Zero
+            ir_carrier(0x01, 3, CYCLES_BIT_PREFIX);
+            ir_carrier(0x00, 3, CYCLES_BIT_SUFFIX_ZERO);
+        }
+    }
+    // Zero to end packet
+    ir_carrier(0x01, 3, CYCLES_BIT_PREFIX);
+    ir_carrier(0x00, 3, CYCLES_BIT_SUFFIX_ZERO);
+    return true;
 }
