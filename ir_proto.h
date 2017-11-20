@@ -34,9 +34,15 @@ typedef struct ir_proto_sirc_12 {
 typedef bool (*ir_decoder_fn)(ir_proto *, const uint8_t *, unsigned long);
 typedef bool (*ir_encoder_fn)(const ir_proto *);
 
+void ir_carrier(unsigned long duty_on,
+                unsigned long duty_total,
+                unsigned long num_cycles);
+
 bool ir_proto_decode(ir_proto * proto,
                      const uint8_t * buffer,
                      unsigned long buffer_sz);
+
+bool ir_proto_encode(const ir_proto * proto);
 
 unsigned long decode_sequence(const uint8_t * buffer,
                               unsigned long buffer_sz,
@@ -50,5 +56,9 @@ bool ir_proto_decode_samsung(ir_proto * proto,
 bool ir_proto_decode_sirc_12(ir_proto * proto,
                              const uint8_t * buffer,
                              unsigned long buffer_sz);
+
+bool ir_proto_encode_samsung(const ir_proto * proto);
+
+bool ir_proto_encode_sirc_12(const ir_proto * proto);
 
 #endif

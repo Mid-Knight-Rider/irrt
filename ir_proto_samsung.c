@@ -122,3 +122,8 @@ bool ir_proto_decode_samsung(ir_proto * proto,
     
     return true;
 }
+
+bool ir_proto_encode_samsung(const ir_proto * proto)
+{
+    return false;
+}

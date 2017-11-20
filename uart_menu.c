@@ -6,6 +6,9 @@ extern ir_remote ir_remotes[];
 extern bool recv_buffer_ready;
 extern unsigned long recv_buffer_sz;
 extern uint8_t recv_buffer[];
+extern systick_settings_t systick_settings;
+
+static bool strequ(const char * a, const char * b);
 
 void uart_menu_main(void)
 {
@@ -65,6 +68,7 @@ void uart_menu_remote_add(void)
     bool add_buttons = true;
     while (add_buttons) {
         // Setup receiver.
+        systick_settings.mode = SYSTICK_MODE_RX;
         recv_buffer_ready = false;
         recv_buffer_sz = 0;
         MAP_GPIOIntClear(GPIO_PORTE_BASE, GPIO_PIN_4);
@@ -125,7 +129,7 @@ void uart_menu_remote_add(void)
 
 void uart_menu_remote_delete(void)
 {
-    
+    UARTprintf("This feature is not yet implemented...\n");
 }
 
 void uart_menu_remotes_list(void)
@@ -146,5 +150,52 @@ void uart_menu_remotes_list(void)
 
 void uart_menu_remote_use(void)
 {
-    
+    char remote_name[IR_REMOTE_NAME_SIZE_MAX];
+    UARTprintf("Enter the name of a remote to use.\n");
+    UARTprintf(">");
+    UARTgets(remote_name, IR_REMOTE_NAME_SIZE_MAX);
+    bool found_remote = false;
+    unsigned long i = 0;
+    for (i = 0; i < IR_REMOTES_MAX; ++i) {
+        if (ir_remotes[i].registered && strequ(ir_remotes[i].name, remote_name)) {
+            found_remote = true;
+            break;
+        }
+    }
+    if (!found_remote) {
+        UARTprintf("There is no remote registered by that name.\n");
+        return;
+    }
+    unsigned char command;
+    do {
+        UARTprintf("Listing remote '%s' buttons\n", ir_remotes[i].name);
+        for (unsigned j = 0; j < ir_remotes[i].num_buttons; ++j) {
+            UARTprintf("%c) %s\n", ((char) (j + 97)), ir_remotes[i].buttons[j].name);
+        }
+        UARTprintf("Enter a button code to transmit (q to quit)...\n");
+        UARTprintf(">");
+        command = UARTgetc();
+        unsigned char normalized_command = command - 97;
+        if (normalized_command >= ir_remotes[i].num_buttons) {
+            UARTprintf("Invalid button code. Check the list.\n");
+        } else {
+            UARTprintf("Transmitting button '%s'...\n", ir_remotes[i].buttons[normalized_command].name);
+            ir_proto_encode(&(ir_remotes[i].buttons[normalized_command].proto));
+        }
+    } while ('q' != command);
+}
+
+static bool strequ(const char * a, const char * b)
+{
+    unsigned long i = 0;
+    while (1) {
+        if (a[i] == '\0') {
+            return b[i] == '\0';
+        } else if (b[i] == '\0') {
+            return a[i] == '\0';
+        } else if (a[i] != b[i]) {
+            return false;
+        }
+        i++;
+    }
 }

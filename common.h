@@ -19,4 +19,16 @@
 #include "driverlib/uart.h"
 #include "utils/uartstdio.h"
 
+typedef struct systick_settings_t {
+    enum {
+        SYSTICK_MODE_RX,
+        SYSTICK_MODE_TX
+    } mode;
+    unsigned long duty_code;
+    unsigned long duty_denom;
+    unsigned long ticks_duty;
+    unsigned long ticks;
+} systick_settings_t;
+
+
 #endif

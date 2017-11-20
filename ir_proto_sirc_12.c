@@ -110,3 +110,33 @@ bool ir_proto_decode_sirc_12(ir_proto * proto,
     
     return true;
 }
+
+bool ir_proto_encode_sirc_12(const ir_proto * proto)
+{
+    const ir_proto_sirc_12 * myproto = (const ir_proto_sirc_12 *) proto;
+    ir_carrier(0x01, 4, CYCLES_LEADER_MOD);
+    ir_carrier(0x00, 4, CYCLES_LEADER_SPACE);
+    for (unsigned i = 0; i < COMMAND_NUM_BITS; ++i) {
+        if (0 != ((myproto->command >> i) & 0x01)) {
+            // One
+            ir_carrier(0x01, 4, CYCLES_BIT_PREFIX_ONE);
+            ir_carrier(0x00, 4, CYCLES_BIT_SUFFIX);
+        } else {
+            // Zero
+            ir_carrier(0x01, 4, CYCLES_BIT_PREFIX_ZERO);
+            ir_carrier(0x00, 4, CYCLES_BIT_SUFFIX);
+        }
+    }
+    for (unsigned i = 0; i < ADDRESS_NUM_BITS; ++i) {
+        if (0 != ((myproto->address >> i) & 0x01)) {
+            // One
+            ir_carrier(0x01, 4, CYCLES_BIT_PREFIX_ONE);
+            ir_carrier(0x00, 4, CYCLES_BIT_SUFFIX);
+        } else {
+            // Zero
+            ir_carrier(0x01, 4, CYCLES_BIT_PREFIX_ZERO);
+            ir_carrier(0x00, 4, CYCLES_BIT_SUFFIX);
+        }
+    }
+    return true;
+}

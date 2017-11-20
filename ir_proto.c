@@ -1,6 +1,8 @@
 #include "common.h"
 #include "ir_proto.h"
 
+extern systick_settings_t systick_settings;
+
 /**
  * An array of structures of information about each supported
  * IR protocol. The index into this array is an ir_proto_type
@@ -10,8 +12,8 @@ static struct {
     ir_decoder_fn decode;
     ir_encoder_fn encode;
 } ir_protos[] = {
-        { .decode = ir_proto_decode_samsung, .encode = 0 },
-        { .decode = ir_proto_decode_sirc_12, .encode = 0 }
+        { .decode = ir_proto_decode_samsung, .encode = ir_proto_encode_samsung },
+        { .decode = ir_proto_decode_sirc_12, .encode = ir_proto_encode_sirc_12 }
 };
 
 /**
@@ -33,6 +35,13 @@ bool ir_proto_decode(ir_proto * proto,
     return false;
 }
 
+bool ir_proto_encode(const ir_proto * proto)
+{
+    
+    bool encoded = ir_protos[proto->type].encode(proto);
+    return encoded;
+}
+
 /**
  * Returns the length of the sequence of 'expect' bits in 'buffer'
  * beginning at 'offset' and ending at 'buffer_sz' or the first ~'expect'
@@ -50,4 +59,24 @@ unsigned long decode_sequence(const uint8_t * buffer,
         }
     }
     return (i - offset);
+}
+
+void ir_carrier(unsigned long duty_code,
+                unsigned long duty_denom,
+                unsigned long num_cycles)
+{
+    systick_settings.duty_code = duty_code;
+    systick_settings.duty_denom = duty_denom;
+    systick_settings.ticks = num_cycles;
+    systick_settings.mode = SYSTICK_MODE_TX;
+    systick_settings.ticks_duty = 0;
+    uint32_t old_period = SysTickPeriodGet();
+    MAP_SysTickPeriodSet(old_period / duty_denom);
+    NVIC_ST_CURRENT_R = 0;
+    MAP_SysTickIntEnable();
+    while (systick_settings.ticks > 0);
+    MAP_SysTickIntDisable();
+    MAP_SysTickPeriodSet(old_period);
+    GPIO_PORTC_DATA_R &= ~0x40;
+    
 }
