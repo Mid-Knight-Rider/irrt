@@ -6,5 +6,6 @@ void uart_menu_remote_add(void);
 void uart_menu_remote_delete(void);
 void uart_menu_remotes_list(void);
 void uart_menu_remote_use(void);
+void uart_menu_reset(void);
 
 #endif

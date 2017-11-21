@@ -18,6 +18,7 @@ void uart_menu_main(void)
     UARTprintf("| d) Delete Remote |\n");
     UARTprintf("| l) List Remotes  |\n");
     UARTprintf("| u) Use Remote    |\n");
+    UARTprintf("| r) Reset EEPROM  |\n");
     UARTprintf(" ------------------\n");
     UARTprintf(">");
     unsigned char command = UARTgetc();
@@ -34,6 +35,9 @@ void uart_menu_main(void)
             break;
         case 'u':
             uart_menu_remote_use();
+            break;
+        case 'r':
+            uart_menu_reset();
             break;
         default:
             UARTprintf("Invalid command.\n");
@@ -219,6 +223,25 @@ void uart_menu_remote_use(void)
             ir_proto_encode(&(ir_remotes[i].buttons[normalized_command].proto));
         }
     } while ('q' != command);
+}
+
+void uart_menu_reset(void)
+{
+    char yorn[4];
+    UARTprintf("Resetting will destroy all EEPROM. Continue?\n");
+    UARTprintf("Type \"yes\" or \"no\".\n");
+    UARTprintf(">");
+    UARTgets(yorn, 4);
+    if (strequ("yes", yorn)) {
+        UARTprintf("Resetting EEPROM...\n");
+        if (0 != EEPROMMassErase()) {
+            UARTprintf("Failed to reset EEPROM.\n");
+        } else {
+            SysCtlReset();
+        }
+    } else {
+        UARTprintf("Aborting... Did not reset.\n");
+    }
 }
 
 static bool strequ(const char * a, const char * b)
