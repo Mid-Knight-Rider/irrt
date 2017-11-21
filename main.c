@@ -3,12 +3,14 @@
 #include "uart_menu.h"
 #include "ir_remote.h"
 
+#define EEPROM_MAGIC 0x1337DEAD
 #define RECV_BUFFER_SIZE 4096
 uint8_t recv_buffer[RECV_BUFFER_SIZE];
 unsigned long recv_buffer_sz = 0;
 bool recv_buffer_ready = false;
 ir_remote ir_remotes[IR_REMOTES_MAX];
 systick_settings_t systick_settings;
+bool use_eeprom = false;
 
 void SysTick_Handler(void)
 {
@@ -85,9 +87,28 @@ int main(void)
     MAP_GPIOPinConfigure(GPIO_PA1_U0TX);
     MAP_UARTClockSourceSet(UART0_BASE, UART_CLOCK_PIOSC);
     UARTStdioConfig(0, 9600, 16000000);
-    // Initialize all remotes.
-    for (unsigned long i = 0; i < IR_REMOTES_MAX; ++i) {
-        ir_remotes[i].registered = false;
+    // Configure EEPROM.
+    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_EEPROM0);
+    while (!MAP_SysCtlPeripheralReady(SYSCTL_PERIPH_EEPROM0));
+    use_eeprom = (EEPROM_INIT_OK == MAP_EEPROMInit());
+    // Check if this is the first time we've used EEPROM.
+    if (use_eeprom) {
+        uint32_t magic;
+        MAP_EEPROMRead(&magic, 0, sizeof(magic));
+        // First time using EEPROM. Initialize it.
+        if (magic != EEPROM_MAGIC) {
+            for (unsigned long i = 0; i < IR_REMOTES_MAX; ++i) {
+                ir_remotes[i].registered = false;
+            }
+            magic = EEPROM_MAGIC;
+            if (0 == MAP_EEPROMProgram(&magic, 0, sizeof(magic))) {
+                MAP_EEPROMProgram((uint32_t *) &ir_remotes, sizeof(magic), sizeof(ir_remotes));
+            }
+        }
+        // We already have something stored in EEPROM. Load it.
+        else {
+            MAP_EEPROMRead((uint32_t *) &ir_remotes, sizeof(magic), sizeof(ir_remotes));
+        }
     }
     // Enable interrupts globally.
     MAP_IntMasterEnable();

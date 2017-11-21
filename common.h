@@ -18,6 +18,7 @@
 #include "driverlib/systick.h"
 #include "driverlib/uart.h"
 #include "utils/uartstdio.h"
+#include "driverlib/eeprom.h"
 
 typedef struct systick_settings_t {
     enum {

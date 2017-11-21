@@ -2,11 +2,12 @@
 #include "ir_remote.h"
 #include "uart_menu.h"
 
-extern ir_remote ir_remotes[];
+extern ir_remote ir_remotes[IR_REMOTES_MAX];
 extern bool recv_buffer_ready;
 extern unsigned long recv_buffer_sz;
 extern uint8_t recv_buffer[];
 extern systick_settings_t systick_settings;
+extern bool use_eeprom;
 
 static bool strequ(const char * a, const char * b);
 
@@ -84,6 +85,12 @@ void uart_menu_remote_add(void)
                 while (UARTCharsAvail(UART0_BASE)) {
                     (void) UARTCharGet(UART0_BASE);
                 }
+                // Save the remote to EEPROM.
+                if (use_eeprom) {
+                    if (0 != EEPROMProgram((uint32_t *) &ir_remotes, sizeof(uint32_t), sizeof(ir_remotes))) {
+                        UARTprintf("Could not save remote to EEPROM.\n");
+                    }
+                }
                 return;
             }
         }
@@ -135,7 +142,30 @@ void uart_menu_remote_add(void)
 
 void uart_menu_remote_delete(void)
 {
-    UARTprintf("This feature is not yet implemented...\n");
+    char remote_name[IR_REMOTE_NAME_SIZE_MAX];
+    UARTprintf("Enter the name of a remote to delete.\n");
+    UARTprintf(">");
+    UARTgets(remote_name, IR_REMOTE_NAME_SIZE_MAX);
+    bool found_remote = false;
+    unsigned long i = 0;
+    for (i = 0; i < IR_REMOTES_MAX; ++i) {
+        if (ir_remotes[i].registered && strequ(ir_remotes[i].name, remote_name)) {
+            found_remote = true;
+            break;
+        }
+    }
+    if (!found_remote) {
+        UARTprintf("There is no remote registered by that name.\n");
+        return;
+    }
+    UARTprintf("Deleted remote '%s'.\n", ir_remotes[i].name);
+    ir_remotes[i].registered = false;
+    // Update EEPROM.
+    if (use_eeprom) {
+        if (0 != EEPROMProgram((uint32_t *) &ir_remotes, sizeof(uint32_t), sizeof(ir_remotes))) {
+            UARTprintf("Could not remove remote from EEPROM.\n");
+        }
+    }
 }
 
 void uart_menu_remotes_list(void)
