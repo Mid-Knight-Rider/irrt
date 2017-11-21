@@ -13,7 +13,8 @@ static struct {
     ir_encoder_fn encode;
 } ir_protos[] = {
         { .decode = ir_proto_decode_samsung, .encode = ir_proto_encode_samsung },
-        { .decode = ir_proto_decode_sirc_12, .encode = ir_proto_encode_sirc_12 }
+        { .decode = ir_proto_decode_sirc_12, .encode = ir_proto_encode_sirc_12 },
+        { .decode = ir_proto_decode_nec, .encode = ir_proto_encode_nec }
 };
 
 /**

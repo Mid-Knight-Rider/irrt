@@ -100,6 +100,12 @@ void uart_menu_remote_add(void)
                     UARTprintf("Got: Sony SIRC 12-bit: address = 0x%02x, command = 0x%02x\n", myproto->address, myproto->command);
                     break;
                 }
+                case IR_PROTO_NEC: {
+                    ir_proto_nec * myproto = (ir_proto_nec *) &proto;
+                    UARTprintf("Got: NEC: address = 0x%02x, address_high = 0x%02x, command = 0x%02x\n",
+                            myproto->address, myproto->address_high, myproto->command);
+                    break;
+                }
                 default: {
                     break;
                 }

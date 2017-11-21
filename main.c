@@ -91,7 +91,6 @@ int main(void)
     }
     // Enable interrupts globally.
     MAP_IntMasterEnable();
-    UARTprintf("DEBUG: clock = %u period = %u\n", SysCtlClockGet(), SysTickPeriodGet());
     // Main program loop.
     while (loop) {
         uart_menu_main();

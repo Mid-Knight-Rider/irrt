@@ -5,8 +5,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define IR_REMOTE_NAME_SIZE_MAX 16
-#define IR_REMOTE_BUTTONS_MAX 16
+#define IR_REMOTE_NAME_SIZE_MAX 8
+#define IR_REMOTE_BUTTONS_MAX 20
 #define IR_REMOTE_BUTTON_NAME_SIZE_MAX 8
 #define IR_REMOTES_MAX 8
 
